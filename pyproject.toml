@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "big-sqs"
+version = "0.1.0"
+description = "An SQS client capable of storing oversize message payloads on S3."
+authors = ["Saul Johnson <saul.johnson@breachlock.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+boto3 = "^1.24.85"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
