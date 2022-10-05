@@ -3,7 +3,17 @@ name = "big-sqs"
 version = "0.1.0"
 description = "An SQS client capable of storing oversize message payloads on S3."
 authors = ["Saul Johnson <saul.johnson@breachlock.com>"]
-license = "MIT"
+license = "Apache 2.0"
+readme = "README.md"
+repository = "https://github.com/security-breachlock/big-sqs.git"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+]
+packages = [
+    { include = "big_sqs" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"

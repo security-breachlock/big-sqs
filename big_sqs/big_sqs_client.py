@@ -1,3 +1,11 @@
+""" Contains an SQS client capable of storing oversize message payloads on S3.
+
+Author:
+    Saul Johnson (saul.johnson@breachlock.com)
+Since:
+    05/10/2022
+"""
+
 import json
 from typing import Any, Dict, List
 from uuid import uuid4
@@ -52,7 +60,11 @@ class BigSqsClient():
         return len(message.encode('utf-8'))
 
 
-    def send_message(self, message: str, attributes: Dict[str, Any], message_group_id: str = None) -> Dict[str, Any]:
+    def send_message(
+        self,
+        message: str,
+        attributes: Dict[str, Any] = None,
+        message_group_id: str = None) -> Dict[str, Any]:
         """ Sends an SQS message, substituting an S3 pointer for oversize payloads if necessary.
 
         Args:
@@ -90,7 +102,7 @@ class BigSqsClient():
             QueueUrl=self._queue_url,
             MessageDeduplicationId=payload_id,
             MessageGroupId=message_group_id if message_group_id is not None else str(uuid4()),
-            MessageAttributes=attributes,
+            MessageAttributes=attributes if attributes is not None else {},
             MessageBody=payload
         )
 
@@ -142,7 +154,7 @@ class BigSqsClient():
         )
 
         # Go through each message in the response and resolve any S3 pointers.
-        for message in sqs_response['Messages']:
+        for message in sqs_response.get('Messages', []):
 
             # If the message is an S3 pointer, attempt to resolve it.
             if BigSqsClient.is_s3_pointer(message):
@@ -163,6 +175,12 @@ class BigSqsClient():
                 body_bytes = s3_response['Body'].read()
                 message['Body'] = body_bytes.decode('utf-8')
                 message['MD5OfBody'] = hashlib.md5(body_bytes).hexdigest() # Update MD5 hash.
+
+                # Correct content length.
+                content_length = int(sqs_response['ResponseMetadata']['HTTPHeaders']['content-length'])
+                new_content_length = len(json.dumps(sqs_response))
+                new_content_length += len(str(new_content_length)) - len(str(content_length))
+                sqs_response['ResponseMetadata']['HTTPHeaders']['content-length'] = str(new_content_length)
 
         # Return response with S3 pointers resolved.
         return sqs_response
