@@ -7,7 +7,7 @@ Since:
 """
 
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 import hashlib
 
@@ -64,13 +64,13 @@ class BigSqsClient():
         self,
         message: str,
         attributes: Dict[str, Any] = None,
-        message_group_id: str = None) -> Dict[str, Any]:
+        message_group_id: Optional[str] = None) -> Dict[str, Any]:
         """ Sends an SQS message, substituting an S3 pointer for oversize payloads if necessary.
 
         Args:
-            message (str): The messagr to send.
+            message (str): The message to send.
             attributes (Dict[str, Any]): Any attributes to attach to the message.
-            message_group_id (str): The message group ID to attach to the message.
+            message_group_id (Optional[str]): The message group ID to attach to the message (defaults to a new UUID).
         Returns:
             Dict[str, Any]: The response from SQS.
         """
@@ -107,6 +107,19 @@ class BigSqsClient():
         )
 
 
+    def send_messages(
+        self,
+        messages: List[Tuple[str, Dict[str, Any], str]]) -> List[Dict[str, Any]]:
+        """ Sends multiple SQS messages, substituting an S3 pointer for oversize payloads if necessary.
+
+        Args:
+            messages (List[Tuple[str, Dict[str, Any], str]]): The messages to send as (payload, attrs, id) tuples.
+        Returns:
+            List[Dict[str, Any]]: The responses from SQS.
+        """
+        return list(map(lambda message: self.send_message(*message), messages))
+
+
     @staticmethod
     def is_s3_pointer(message: Dict[str, Any]) -> bool:
         """ Gets whether or not the given SQS message is an S3 pointer.
@@ -135,12 +148,15 @@ class BigSqsClient():
             return False
 
 
-    def receive_messages(self, max_number_of_messages: int, attributes: List[str]=None) -> Dict[str, Any]:
+    def receive_messages(
+        self,
+        max_number_of_messages: int,
+        attributes: Optional[List[str]]=None) -> Dict[str, Any]:
         """ Receives one or more messages from SQS, resolving any pointers to oversize payloads on S3.
 
         Args:
-            max_number_of_messages (int): The maximum number of messages to receive.
-            attributes (List[str]): The attributes to return with the message (defaults to all).
+            max_number_of_messages (Optional[int]): The maximum number of messages to receive (defaults to 1).
+            attributes (Optional[List[str]]): The attributes to return with the message (defaults to all).
         Returns:
             Dict[str, Any]: The response from SQS, with oversize payloads resolved via S3.
         """
